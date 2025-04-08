@@ -108,7 +108,12 @@ class HangmanGUI:
         self.guessed_letters = set()
         self.wrong_guesses = 0
         self.max_wrong = len(HANGMANPICS) - 1
-        self.hint_used = 0
+        self.hints_used = {
+            "first_letter": False,
+            "random_letter": False,
+            "definition": False
+        }
+
         
         self.clear_screen()
         
@@ -183,23 +188,43 @@ class HangmanGUI:
             self.setup_difficulty_screen()
     
     def give_hint(self):
-        if self.hint_used >= 3:
-            messagebox.showinfo("Hint", "You've used all your hints!")
-            return
+        hint_window = tk.Toplevel(self.master)
+        hint_window.title("Choose a Hint")
 
-        self.hint_used += 1
+        tk.Label(hint_window, text="Choose a hint:", font=("Helvetica", 14)).pack(pady=10)
 
-        if self.hint_used == 1:
-            hint = f"The word starts with '{self.secret_word[0].upper()}'."
-        elif self.hint_used == 2:
-            unrevealed_letters = list(set(self.secret_word[1:]))  # Exclude first letter to avoid repetition
-            random_letter = random.choice(unrevealed_letters)
-            hint = f"One of the letters is '{random_letter.upper()}'."
-        elif self.hint_used == 3:
-            definition = fetch_definition(self.secret_word)
-            hint = f"Clue: {definition}"
+        def use_hint(hint_type):
+            if self.hints_used[hint_type]:
+                messagebox.showinfo("Hint", "You've already used this hint!")
+                return
 
-        messagebox.showinfo(f"Hint #{self.hint_used}", hint)
+            self.hints_used[hint_type] = True
+
+            if hint_type == "first_letter":
+                hint = f"The word starts with '{self.secret_word[0].upper()}'."
+            elif hint_type == "random_letter":
+                unrevealed = list(set(self.secret_word[1:]))  # Avoid first letter
+                hint = f"One of the letters is '{random.choice(unrevealed).upper()}'."
+            elif hint_type == "definition":
+                definition = fetch_definition(self.secret_word)
+                hint = f"Clue: {definition}"
+
+            messagebox.showinfo("Hint", hint)
+            hint_window.destroy()
+
+            if all(self.hints_used.values()):
+                self.hint_button.config(state=tk.DISABLED)
+
+        # Buttons for each hint
+        hint_btns = {
+            "first_letter": "Reveal First Letter",
+            "random_letter": "Reveal Random Letter",
+            "definition": "Word Definition"
+        }
+
+        for key, label in hint_btns.items():
+            state = tk.DISABLED if self.hints_used[key] else tk.NORMAL
+            tk.Button(hint_window, text=label, width=25, state=state, command=lambda k=key: use_hint(k)).pack(pady=5)
 
     def clear_screen(self):
         # Remove all widgets in the main window.
