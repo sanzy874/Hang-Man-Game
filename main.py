@@ -1,50 +1,68 @@
 import random
 
+# ANSI escape codes for colors
+GREEN = "\033[92m"   # correct letter in correct position
+YELLOW = "\033[93m"  # letter exists in word but in wrong position
+GREY = "\033[90m"    # letter not in word
+RESET = "\033[0m"    # resets the color
+
 def choose_word():
-    words = ["python", "hangman", "diamond", "developer", "notebook"]
+    # A list of valid five-letter words.
+    words = [
+        "apple", "brave", "crane", "dance", "eagle", 
+        "flame", "ghost", "hotel", "input", "joker"
+    ]
     return random.choice(words)
 
-def display_word(word, guessed_letters):
-    # Reveal letters that have been guessed; otherwise, display an underscore
-    return " ".join([letter if letter in guessed_letters else "_" for letter in word])
-
-def hangman():
-    word = choose_word()
-    guessed_letters = set()
-    tries = 6
-
-    print("Welcome to Hangman!")
+def evaluate_guess(secret, guess):
+    """Compares guess to secret and returns a list of colored letters."""
+    result = [''] * len(secret)
+    secret_chars = list(secret)
     
-    while tries > 0:
-        print("\n" + display_word(word, guessed_letters))
-        print(f"Tries left: {tries}")
-        guess = input("Guess a letter: ").lower()
+    # First pass: Check letters in the correct position.
+    for i, (s_char, g_char) in enumerate(zip(secret, guess)):
+        if g_char == s_char:
+            result[i] = GREEN + g_char.upper() + RESET
+            secret_chars[i] = None  # Remove correctly matched letters
 
-        # Make sure the player enters exactly one alphabetical letter.
-        if len(guess) != 1 or not guess.isalpha():
-            print("Please enter a single letter (a-z).")
+    # Second pass: Check letters that exist in the word in the wrong position.
+    for i, g_char in enumerate(guess):
+        if result[i] != '':  # Skip already correctly matched letters.
             continue
-
-        # Check if the letter was already guessed.
-        if guess in guessed_letters:
-            print("You already guessed that letter.")
-            continue
-
-        # If the guess is in the word, update guessed_letters; otherwise, deduct a try.
-        if guess in word:
-            guessed_letters.add(guess)
-            print("Good guess!")
+        if g_char in secret_chars:
+            result[i] = YELLOW + g_char.upper() + RESET
+            # Remove the matched letter to avoid duplicate matching.
+            secret_chars[secret_chars.index(g_char)] = None
         else:
-            guessed_letters.add(guess)
-            tries -= 1
-            print("Wrong guess.")
-        
-        # Check if every letter in the word has been guessed correctly.
-        if all(letter in guessed_letters for letter in word):
-            print(f"\nYou guessed it! The word was '{word}'. You win! 🎉")
+            result[i] = GREY + g_char.upper() + RESET
+
+    return " ".join(result)
+
+def wordle():
+    secret_word = choose_word()
+    word_length = len(secret_word)
+    attempts = 6
+
+    print("Welcome to Wordle!")
+    print(f"Guess the {word_length}-letter word. You have {attempts} attempts.\n")
+
+    for attempt in range(1, attempts+1):
+        guess = input(f"Attempt {attempt}: ").lower().strip()
+
+        # Validate the guess length.
+        if len(guess) != word_length:
+            print(f"Please enter a {word_length}-letter word.\n")
+            continue
+
+        # Evaluate the guess and output colored feedback.
+        feedback = evaluate_guess(secret_word, guess)
+        print(feedback + "\n")
+
+        if guess == secret_word:
+            print("Congratulations! You've guessed the word correctly.")
             break
     else:
-        print(f"\nGame over! The word was '{word}'.")
+        print(f"Sorry, you're out of attempts. The word was '{secret_word.upper()}'.")
 
 if __name__ == "__main__":
-    hangman()
+    wordle()
