@@ -1,68 +1,154 @@
 import random
+import tkinter as tk
+from tkinter import messagebox
 
-# ANSI escape codes for colors
-GREEN = "\033[92m"   # correct letter in correct position
-YELLOW = "\033[93m"  # letter exists in word but in wrong position
-GREY = "\033[90m"    # letter not in word
-RESET = "\033[0m"    # resets the color
+# ASCII art for hangman states.
+HANGMANPICS = [
+    """
+     +---+
+     |   |
+         |
+         |
+         |
+         |
+    =========""",
+    """
+     +---+
+     |   |
+     O   |
+         |
+         |
+         |
+    =========""",
+    """
+     +---+
+     |   |
+     O   |
+     |   |
+         |
+         |
+    =========""",
+    """
+     +---+
+     |   |
+     O   |
+    /|   |
+         |
+         |
+    =========""",
+    """
+     +---+
+     |   |
+     O   |
+    /|\\  |
+         |
+         |
+    =========""",
+    """
+     +---+
+     |   |
+     O   |
+    /|\\  |
+    /    |
+         |
+    =========""",
+    """
+     +---+
+     |   |
+     O   |
+    /|\\  |
+    / \\  |
+         |
+    ========="""
+]
 
-def choose_word():
-    # A list of valid five-letter words.
-    words = [
-        "apple", "brave", "crane", "dance", "eagle", 
-        "flame", "ghost", "hotel", "input", "joker"
-    ]
-    return random.choice(words)
+# Word lists by difficulty.
+WORDS = {
+    "easy": ["apple", "bread", "candy", "dream", "flame"],
+    "medium": ["python", "hangman", "jungle", "puzzle", "quartz"],
+    "hard": ["awkward", "rhythms", "cryptic", "zephyr", "mnemonic"]
+}
 
-def evaluate_guess(secret, guess):
-    """Compares guess to secret and returns a list of colored letters."""
-    result = [''] * len(secret)
-    secret_chars = list(secret)
-    
-    # First pass: Check letters in the correct position.
-    for i, (s_char, g_char) in enumerate(zip(secret, guess)):
-        if g_char == s_char:
-            result[i] = GREEN + g_char.upper() + RESET
-            secret_chars[i] = None  # Remove correctly matched letters
+class HangmanGUI:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Hangman Game")
+        
+        self.difficulty = tk.StringVar(value="easy")
+        self.setup_difficulty_screen()
 
-    # Second pass: Check letters that exist in the word in the wrong position.
-    for i, g_char in enumerate(guess):
-        if result[i] != '':  # Skip already correctly matched letters.
-            continue
-        if g_char in secret_chars:
-            result[i] = YELLOW + g_char.upper() + RESET
-            # Remove the matched letter to avoid duplicate matching.
-            secret_chars[secret_chars.index(g_char)] = None
-        else:
-            result[i] = GREY + g_char.upper() + RESET
+    def setup_difficulty_screen(self):
+        # Screen to select difficulty level.
+        self.clear_screen()
+        label = tk.Label(self.master, text="Choose difficulty:", font=("Helvetica", 14))
+        label.pack(pady=10)
+        
+        for level in WORDS.keys():
+            rb = tk.Radiobutton(self.master, text=level.capitalize(), variable=self.difficulty, value=level, font=("Helvetica", 12))
+            rb.pack(anchor="w")
+        
+        start_btn = tk.Button(self.master, text="Start Game", command=self.start_game, font=("Helvetica", 12))
+        start_btn.pack(pady=20)
 
-    return " ".join(result)
+    def start_game(self):
+        self.secret_word = random.choice(WORDS[self.difficulty.get()])
+        self.guessed_letters = set()
+        self.wrong_guesses = 0
+        self.max_wrong = len(HANGMANPICS) - 1
+        
+        self.clear_screen()
+        # Create labels and entry for game play.
+        self.hangman_label = tk.Label(self.master, text=HANGMANPICS[self.wrong_guesses], font=("Courier", 12), justify="left")
+        self.hangman_label.pack(pady=10)
+        
+        self.word_label = tk.Label(self.master, text=self.get_display_word(), font=("Helvetica", 16))
+        self.word_label.pack(pady=10)
+        
+        self.entry = tk.Entry(self.master, font=("Helvetica", 14))
+        self.entry.pack(pady=5)
+        self.entry.focus_set()
+        
+        submit_btn = tk.Button(self.master, text="Guess", command=self.process_guess, font=("Helvetica", 12))
+        submit_btn.pack(pady=5)
 
-def wordle():
-    secret_word = choose_word()
-    word_length = len(secret_word)
-    attempts = 6
+    def get_display_word(self):
+        return " ".join(letter if letter in self.guessed_letters else "_" for letter in self.secret_word)
 
-    print("Welcome to Wordle!")
-    print(f"Guess the {word_length}-letter word. You have {attempts} attempts.\n")
+    def process_guess(self):
+        guess = self.entry.get().lower().strip()
+        self.entry.delete(0, tk.END)
+        
+        if len(guess) != 1 or not guess.isalpha():
+            messagebox.showinfo("Invalid Input", "Please enter a single alphabetical character.")
+            return
+        
+        if guess in self.guessed_letters:
+            messagebox.showinfo("Already Guessed", f"You have already guessed '{guess}'.")
+            return
+        
+        self.guessed_letters.add(guess)
+        
+        if guess not in self.secret_word:
+            self.wrong_guesses += 1
+        
+        # Update GUI components.
+        self.hangman_label.config(text=HANGMANPICS[self.wrong_guesses])
+        self.word_label.config(text=self.get_display_word())
+        
+        # Check win/loss conditions.
+        if all(letter in self.guessed_letters for letter in self.secret_word):
+            messagebox.showinfo("Congratulations!", f"You've guessed it! The word was '{self.secret_word.upper()}'.")
+            self.setup_difficulty_screen()
+        elif self.wrong_guesses >= self.max_wrong:
+            messagebox.showinfo("Game Over", f"Sorry, you lost! The word was '{self.secret_word.upper()}'.")
+            self.setup_difficulty_screen()
 
-    for attempt in range(1, attempts+1):
-        guess = input(f"Attempt {attempt}: ").lower().strip()
-
-        # Validate the guess length.
-        if len(guess) != word_length:
-            print(f"Please enter a {word_length}-letter word.\n")
-            continue
-
-        # Evaluate the guess and output colored feedback.
-        feedback = evaluate_guess(secret_word, guess)
-        print(feedback + "\n")
-
-        if guess == secret_word:
-            print("Congratulations! You've guessed the word correctly.")
-            break
-    else:
-        print(f"Sorry, you're out of attempts. The word was '{secret_word.upper()}'.")
+    def clear_screen(self):
+        # Remove all widgets from the master window.
+        for widget in self.master.winfo_children():
+            widget.destroy()
 
 if __name__ == "__main__":
-    wordle()
+    root = tk.Tk()
+    app = HangmanGUI(root)
+    root.mainloop()
