@@ -1,6 +1,7 @@
 import random
 import tkinter as tk
 from tkinter import messagebox
+from words import WORDS  # Import the word lists from the new file
 
 # ASCII art for hangman states.
 HANGMANPICS = [
@@ -61,13 +62,6 @@ HANGMANPICS = [
          |
     ========="""
 ]
-
-# Word lists by difficulty.
-WORDS = {
-    "easy": ["apple", "bread", "candy", "dream", "flame"],
-    "medium": ["python", "hangman", "jungle", "puzzle", "quartz"],
-    "hard": ["awkward", "rhythms", "cryptic", "zephyr", "mnemonic"]
-}
 
 class HangmanGUI:
     def __init__(self, master):
