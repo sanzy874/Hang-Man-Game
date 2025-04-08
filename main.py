@@ -5,6 +5,7 @@ def choose_word():
     return random.choice(words)
 
 def display_word(word, guessed_letters):
+    # Reveal letters that have been guessed; otherwise, display an underscore
     return " ".join([letter if letter in guessed_letters else "_" for letter in word])
 
 def hangman():
@@ -19,21 +20,31 @@ def hangman():
         print(f"Tries left: {tries}")
         guess = input("Guess a letter: ").lower()
 
+        # Make sure the player enters exactly one alphabetical letter.
+        if len(guess) != 1 or not guess.isalpha():
+            print("Please enter a single letter (a-z).")
+            continue
+
+        # Check if the letter was already guessed.
         if guess in guessed_letters:
             print("You already guessed that letter.")
-        elif guess in word:
+            continue
+
+        # If the guess is in the word, update guessed_letters; otherwise, deduct a try.
+        if guess in word:
             guessed_letters.add(guess)
             print("Good guess!")
         else:
             guessed_letters.add(guess)
             tries -= 1
             print("Wrong guess.")
-
+        
+        # Check if every letter in the word has been guessed correctly.
         if all(letter in guessed_letters for letter in word):
             print(f"\nYou guessed it! The word was '{word}'. You win! 🎉")
-            return
-
-    print(f"\nGame over! The word was '{word}'.")
+            break
+    else:
+        print(f"\nGame over! The word was '{word}'.")
 
 if __name__ == "__main__":
     hangman()
